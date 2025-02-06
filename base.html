@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spinning Rezervasyon Sistemi</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { padding-top: 20px; }
+        .container { max-width: 800px; }
+        .alert { margin-top: 20px; }
+
+        /* Özel Onay Modalı */
+        .confirmation-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            text-align: center;
+            z-index: 1000;
+            display: none;
+            animation: modalEnter 0.5s ease;
+        }
+
+        .confirmation-modal.show {
+            display: block;
+        }
+
+        .checkmark-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #4CAF50;
+            margin: 0 auto 1rem;
+            position: relative;
+        }
+
+        .checkmark {
+            display: inline-block;
+            transform: rotate(45deg);
+            height: 40px;
+            width: 20px;
+            border-bottom: 4px solid white;
+            border-right: 4px solid white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: -25px 0 0 -10px;
+        }
+
+        @keyframes modalEnter {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .modal-overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% with get_flashed_messages(with_categories=true) as messages %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Modal ve Overlay -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="confirmation-modal" id="confirmationModal">
+        <div class="checkmark-circle">
+            <div class="checkmark"></div>
+        </div>
+        <h3 style="color: #4CAF50; margin-bottom: 1rem;">Rezervasyon Onaylandı!</h3>
+        <p>Rezervasyonunuz başarıyla alınmıştır.</p>
+    </div>
+
+    <script>
+        // Flash mesaj kontrolü
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = JSON.parse(`{{ get_flashed_messages(with_categories=true) | tojson | safe }}`);
+            messages.forEach(([category, message]) => {
+                if (category === 'success') {
+                    showConfirmationModal();
+                }
+            });
+        });
+
+        function showConfirmationModal() {
+            const modal = document.getElementById('confirmationModal');
+            const overlay = document.getElementById('modalOverlay');
+            
+            modal.classList.add('show');
+            overlay.classList.add('show');
+            
+            setTimeout(() => {
+                modal.classList.remove('show');
+                overlay.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

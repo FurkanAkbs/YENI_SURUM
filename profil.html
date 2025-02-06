@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Profil Bilgileriniz</h2>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ ad }} {{ soyad }}</h5>
+            <p class="card-text">{{ email }}</p>
+        </div>
+    </div>
+
+    <h3>Rezervasyon Geçmişiniz</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Bisiklet No</th>
+                <th>Tarih</th>
+               

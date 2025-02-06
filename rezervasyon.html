@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Rezervasyon Yap</h2>
+    <form method="POST">
+        <!-- Bisiklet Seçimi -->
+        <div class="bisiklet-container">
+            {% for i in range(1, 21) %}
+            <div class="bisiklet-card" data-bisiklet-no="{{ i }}" onclick="selectBisiklet(this)">
+                <img src="{{ url_for('static', filename='images/bisiklet' ~ i ~ '.jpg') }}" alt="Bisiklet {{ i }}">
+                <p>Bisiklet {{ i }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Seçili Bisiklet ve Tarih -->
+        <input type="hidden" id="bisiklet_no" name="bisiklet_no" required>
+        <input type="date" id="tarih" name="tarih" class="form-control mt-4" required readonly>
+
+        <!-- Rezervasyon Butonu -->
+        <button type="submit" class="btn btn-primary mt-3">Rezervasyon Yap</button>
+    </form>
+</div>
+
+<!-- JavaScript -->
+<script>
+    // Sayfa yüklendiğinde tarihi otomatik ayarla
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('tarih').value = today;
+    });
+
+    // Bisiklet seçim fonksiyonu
+    function selectBisiklet(element) {
+        // Tüm seçimleri temizle
+        document.querySelectorAll('.bisiklet-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        // Seçimi aktif et
+        element.classList.add('selected');
+        document.getElementById('bisiklet_no').value = element.dataset.bisikletNo;
+    }
+</script>
+
+<style>
+    .bisiklet-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 15px;
+        padding: 20px 0;
+    }
+
+    .bisiklet-card {
+        cursor: pointer;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        padding: 10px;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .bisiklet-card.selected {
+        border-color: #007bff;
+        background-color: #e7f3ff;
+        transform: scale(1.05);
+    }
+
+    .bisiklet-card img {
+        width: 100%;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 5px;
+    }
+
+    .bisiklet-card p {
+        margin: 8px 0 0;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    #tarih {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}

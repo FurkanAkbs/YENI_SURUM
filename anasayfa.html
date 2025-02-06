@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="mb-4">Spinning Rezervasyon Sistemi</h1>
+    <div class="list-group col-md-6 mx-auto">
+        <a href="{{ url_for('giris') }}" class="list-group-item list-group-item-action">
+            <i class="fas fa-sign-in-alt mr-2"></i>Giriş Yap
+        </a>
+        <a href="{{ url_for('kayit') }}" class="list-group-item list-group-item-action">
+            <i class="fas fa-user-plus mr-2"></i>Kayıt Ol
+        </a>
+        <a href="{{ url_for('admin_login') }}" class="list-group-item list-group-item-action">
+            <i class="fas fa-lock mr-2"></i>Admin Girişi
+        </a>
+    </div>
+</div>
+{% endblock %}

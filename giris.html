@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Üye Girişi</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label>E-posta:</label>
+            <input type="email" name="email" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label>Şifre:</label>
+            <input type="password" name="sifre" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Giriş Yap</button>
+        <a href="{{ url_for('kayit') }}" class="btn btn-link">Hesabınız yok mu? Kayıt Olun</a>
+    </form>
+</div>
+{% endblock %}
