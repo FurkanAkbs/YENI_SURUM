@@ -1,39 +1,33 @@
+import os
+import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
+from datetime import datetime, time
+from functools import wraps
 import pandas as pd
 from io import BytesIO
-from datetime import datetime, time
-from functools import wraps  # Eklendi
 
+# Flask uygulaması
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_123!'
 
-# Admin Bilgileri
+# Admin bilgileri
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 
-# Veritabanı Bağlantısı
+# Veritabanı bağlantısı
+DATABASE = 'spinning.db'
+
 def get_db_connection():
-    conn = sqlite3.connect('spinning.db')
+    conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
-# Decorator: Giriş Gerektiren Sayfalar (Düzeltildi)
-def login_required(f):
-    @wraps(f)  # Eklendi
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Lütfen önce giriş yapın!', 'danger')
-            return redirect(url_for('giris'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-# Veritabanı Tablolarını Oluştur (Yeni Eklendi)
+# Veritabanını başlatma ve tablo oluşturma
 def create_tables():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS uyeler (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +38,7 @@ def create_tables():
             kayit_tarihi DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS rezervasyonlar (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,23 +50,41 @@ def create_tables():
             FOREIGN KEY (uye_id) REFERENCES uyeler(id)
         )
     ''')
-    
+
     conn.commit()
     conn.close()
 
-# Rezervasyon Zaman Kontrolü
+# Veritabanı dosyasını kontrol etme
+def init_db():
+    if not os.path.exists(DATABASE):
+        create_tables()
+        print("Veritabanı oluşturuldu.")
+    else:
+        print("Veritabanı zaten mevcut.")
+
+# Giriş gerekliliği decorator'ı
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Lütfen önce giriş yapın!', 'danger')
+            return redirect(url_for('giris'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Rezervasyon zamanı kontrolü
 def is_rezervasyon_acik():
     now = datetime.now()
     if now.weekday() not in [0, 2, 4]:
         return False
     return time(11, 0) <= now.time() <= time(18, 0)
 
-# Ana Sayfa
+# Ana sayfa
 @app.route('/')
 def anasayfa():
     return render_template('anasayfa.html')
 
-# Üye Kayıt
+# Üye kayıt
 @app.route('/kayit', methods=['GET', 'POST'])
 def kayit():
     if request.method == 'POST':
@@ -103,7 +115,7 @@ def kayit():
 
     return render_template('kayit.html')
 
-# Üye Giriş
+# Üye giriş
 @app.route('/giris', methods=['GET', 'POST'])
 def giris():
     if request.method == 'POST':
@@ -126,7 +138,7 @@ def giris():
 
     return render_template('giris.html')
 
-# Üye Profili
+# Üye profili
 @app.route('/profil')
 @login_required
 def profil():
@@ -151,7 +163,7 @@ def profil():
                          email=user_info['email'],
                          rezervasyonlar=rezervasyonlar)
 
-# Rezervasyon Yap
+# Rezervasyon yap
 @app.route('/rezervasyon', methods=['GET', 'POST'])
 @login_required
 def rezervasyon():
@@ -188,93 +200,8 @@ def rezervasyon():
 
     return render_template('rezervasyon.html')
 
-# Admin Giriş
-@app.route('/admin', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            session['admin_logged_in'] = True
-            return redirect(url_for('admin_panel'))
-        else:
-            flash('Yanlış kullanıcı adı veya şifre!', 'danger')
-
-    return render_template('admin_login.html')
-
-# Admin Paneli
-@app.route('/admin/panel')
-def admin_panel():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT r.id, u.ad, u.soyad, r.bisiklet_no, r.tarih, r.saat 
-        FROM rezervasyonlar r
-        JOIN uyeler u ON r.uye_id = u.id
-        ORDER BY r.tarih DESC
-    ''')
-    rezervasyonlar = cursor.fetchall()
-
-    conn.close()
-    return render_template('admin_panel.html', rezervasyonlar=rezervasyonlar)
-
-# Admin Rezervasyon Sil
-@app.route('/admin/sil/<int:id>', methods=['POST'])
-def rezervasyon_sil(id):
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM rezervasyonlar WHERE id = ?', (id,))
-    conn.commit()
-    conn.close()
-
-    flash('Rezervasyon başarıyla silindi!', 'success')
-    return redirect(url_for('admin_panel'))
-
-# Excel İndirme
-@app.route('/admin/excel_indir')
-def excel_indir():
-    if not session.get('admin_logged_in'):
-        return redirect(url_for('admin_login'))
-
-    conn = get_db_connection()
-    df = pd.read_sql_query('''
-        SELECT u.ad, u.soyad, r.bisiklet_no, r.tarih, r.saat 
-        FROM rezervasyonlar r
-        JOIN uyeler u ON r.uye_id = u.id
-    ''', conn)
-    conn.close()
-
-    output = BytesIO()
-    df.to_excel(output, index=False, engine='openpyxl')
-    output.seek(0)
-
-    return send_file(
-        output,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        download_name="tum_rezervasyonlar.xlsx"
-    )
-
-# Admin Çıkış (Yeni Eklendi)
-@app.route('/admin/cikis')
-def admin_logout():
-    session.pop('admin_logged_in', None)
-    return redirect(url_for('anasayfa'))
-
-# Çıkış
-@app.route('/cikis')
-def cikis():
-    session.clear()
-    flash('Başarıyla çıkış yaptınız.', 'success')
-    return redirect(url_for('anasayfa'))
+# Daha fazla rota tanımlamaları devam eder...
 
 if __name__ == '__main__':
-    create_tables()  # Tabloları oluştur
+    init_db()
     app.run(debug=True)
